@@ -39,16 +39,26 @@ function makeListen(stage) {
     // to reduce the code - but we have left the filenames in full
     // just in case your filenames are different
     // note: the order for the two match
-    var picSets = [
+    window.picSets = [
         ["dragonfly.jpg", "butterfly.jpg", "ladybug.jpg", "spider.jpg"],
         ["owl.jpg", "bird.jpg", "penguin.jpg", "peacock.jpg"],
         ["dolphin.jpg", "whale.jpg", "fish.jpg", "shark.jpg"]
-    ];
-    var soundSets = [
-        ["dragonfly.mp3", "butterfly.mp3", "ladybug.mp3", "spider.mp3"],
-        ["owl.mp3", "bird.mp3", "penguin.mp3", "peacock.mp3"],
-        ["dolphin.mp3", "whale.mp3", "fish.mp3", "shark.mp3"]
-    ];
+    ];    
+
+    window.soundSets = {
+        "dragonfly.jpg": { en: "dragonfly.mp3", sa: "dragonflySans.mp3" },
+        "butterfly.jpg": { en: "butterfly.mp3", sa: "butterflySans.mp3" },
+        "ladybug.jpg": { en: "ladybug.mp3", sa: "ladybug.mp3" },
+        "spider.jpg": { en: "spider.mp3", sa: "spiderSans.mp3" },
+        "owl.jpg": { en: "owl.mp3", sa: "owlSans.mp3" },
+        "bird.jpg": { en: "bird.mp3", sa: "birdSans.mp3" },
+        "penguin.jpg": { en: "penguin.mp3", sa: "penguin.mp3" },
+        "peacock.jpg": { en: "peacock.mp3", sa: "peacockSans.mp3" },
+        "dolphin.jpg": { en: "dolphin.mp3", sa: "dolphin.mp3" },
+        "whale.jpg": { en: "whale.mp3", sa: "whaleSans.mp3" },
+        "fish.jpg": { en: "fish.mp3", sa: "fishSans.mp3" },
+        "shark.jpg": { en: "shark.mp3", sa: "sharkSans.mp3" }
+    };
 
     // use currentSet to keep track of what set pictures we show and sounds we play
     // currentSound will be used to keep track of which sound we are on
@@ -56,18 +66,18 @@ function makeListen(stage) {
     // sounds will hold a shuffled set of sounds to play
     var currentSet = 0;
     var currentSound = 0;
-    var picSet;
+    window.picSet = picSets[currentSet];
     var soundSet;
     var sounds;
 
     // make a function to show pictures, etc. as we will do this multiple times
     function showPictures() {
-        picSet = picSets[currentSet];
-        soundSet = soundSets[currentSet];
+        window.picSet = picSets[currentSet];
+        soundSet = window.soundSets;
         currentSound = 0;
 
         // make a copy of the sounds and shuffle them
-        sounds = shuffle(copy(soundSet));
+        sounds = shuffle(window.picSet.map(pic => soundSet[pic][window.isTranslated ? 'sa' : 'en']));
 
         // pics is the tile of containers. We will now put pics in them
         // and add the matching sound as a property of the pic.
@@ -79,7 +89,7 @@ function makeListen(stage) {
             // there would be at most one image so pic.getChildAt(0).remove()
             // would work... but removeAllChildren() is easier to write!
             pic.removeAllChildren();
-            asset(picSet[i])
+            asset(window.picSet[i])
                 .clone() // usually good to clone an image in case another copy is needed
                 .center(pic);
             pic.cur().expand(); // make it easy for kids to press
@@ -87,7 +97,7 @@ function makeListen(stage) {
             // warning, expand also acts like setting mouseChildren to false
             // so put answer property on pic (the Container) not on the inside asset
             // note - do not chain properties
-            pic.answer = soundSet[i];
+            pic.answer = soundSet[window.picSet[i]][window.isTranslated ? 'sa' : 'en'];
         });
     }
     showPictures();
@@ -132,23 +142,23 @@ function makeListen(stage) {
         var pic = e.target; // e.target is what is clicked on in the pics tile (or a container)
 
         // test to see if the pic answer matches the current sound file
-        if (pic.answer == sounds[currentSound]) {
-            playCheck = false; // will need to play the new sound before picking an animal again
-            asset("woohoo").play({interrupt:"any"}); // play instead of an older woohoo
+        var expectedSound = sounds[currentSound];
 
+        console.log(`🔍 Checking Match - Expected: ${expectedSound}, Clicked: ${pic.answer}`);
+
+        if (pic.answer === expectedSound || pic.answer.replace("Sans", "") === expectedSound.replace("Sans", "")) {
+            console.log("✅ Correct Match!");
+            playCheck = false;
+            asset("woohoo").play({interrupt:"any"});
             emitter.loc(pic, null, page).spurt(100);
-            currentSound++; // go to the next sound
-            // if finished this set go to the next set
-            if (currentSound >= soundSet.length) {
+
+            currentSound++;
+            if (currentSound >= sounds.length) {
                 gotoNextSet();
             }
         } else {
-            // interrupt "any" stops the previous playing of the same sound
-            // but only if the sound has a maxNum set when loading the asset
-            // if there is a maxNum set and no interrupt then the default is "none"
-            // which would mean the original sound would keep playing and not be interrupted
+            console.log(`❌ Incorrect! Expected: ${expectedSound}, Clicked: ${pic.answer}`);
             asset("tryagain").play({interrupt:"any"});
-            // shake the pic to show it is wrong
             pic.animate({
                 props:{scale:1.5},
                 loopCount:2,
@@ -176,7 +186,7 @@ function makeListen(stage) {
             time:1,
             rewind:true,
             rewindCall:function () {
-                if (currentSet >= soundSets.length) { // at end of all sets
+                if (currentSet >= picSets.length) { // at end of all sets
                     play.pauseAnimate();
                     currentSet = 0;
                     currentSound = 0;
@@ -322,14 +332,15 @@ function makeListen(stage) {
     // Store words and page globally for translation function
     window.listenPage = page;
     window.listenStage = stage;
+    window.pics = pics;
+    window.currentSet = currentSet;
     window.headingLabel = headingLabel;
 
     // Store original texts and audio for toggling
     window.originalListenTexts = {
         heading: "Play the sound and press the matching animal!"
     };
-    window.originalListenAudio = "listen";
-    window.translatedListenAudio = "listenSans";
+    window.originalListenAudio = soundSets;
 
     // Add this part at the end of the makeListen function
     var translateButton = new Button({
@@ -343,8 +354,19 @@ function makeListen(stage) {
     translateButton.on("click", function() {
         if (typeof translateListenContent === 'function') {
             translateListenContent();
+    
+            // Play translated instruction audio
+            var instructionAudio = window.isTranslated ? "listenSans.mp3" : "listen.mp3";
+    
+            // Stop any existing instruction audio before playing new one
+            if (window.listenPage.read) {
+                window.listenPage.read.stop();
+            }
+    
+            // Play new instruction audio
+            window.listenPage.read = asset(instructionAudio).play();
         } else {
-            console.error('translateListenContent function is not defined.');
+            console.error('❌ Error: translateListenContent function is not defined.');
         }
     });
 
@@ -352,20 +374,106 @@ function makeListen(stage) {
 }
 
 function translateListenContent() {
+
+
+    console.log("🔄 Switching Translation - Current State:", window.isTranslated ? "Sanskrit" : "English");
+
+    if (!window.pics || window.currentSet === undefined) {
+        console.error("❌ Error: window.pics or window.currentSet is not defined.");
+        return;
+    }
+
+    // Make sure the picture set exists before proceeding
+    if (!window.picSets || !Array.isArray(window.picSets) || window.picSets.length === 0) {
+        console.error("❌ Error: window.picSets is not properly defined or empty.");
+        return;
+    }
+
+    if (window.currentSet < 0 || window.currentSet >= window.picSets.length) {
+        console.error("❌ Error: window.currentSet is out of bounds. Current Set:", window.currentSet);
+        return;
+    }
+
+    window.picSet = window.picSets[window.currentSet];
+
+    if (!window.picSet || !Array.isArray(window.picSet) || window.picSet.length === 0) {
+        console.error("❌ Error: window.picSet is undefined or empty.");
+        return;
+    }
+
+    console.log("✅ Current Picture Set:", window.picSet);
+
+    // Toggle translation state
+    window.isTranslated = !window.isTranslated;
+
+    // Update heading text
     var translations = {
-        "Play the sound and press the matching animal!": "      ध्वनिं क्रीडयित्वा मेलकर्ता पशुं प्रति चालयन्तु!"
+        "Play the sound and press the matching animal!": "     ध्वनिं क्रीडयित्वा मेलकर्ता पशुं प्रति चालयन्तु!"
     };
+    window.headingLabel.text = window.isTranslated ? translations["Play the sound and press the matching animal!"] : window.originalListenTexts.heading;
 
-    var isTranslated = window.headingLabel.text !== window.originalListenTexts.heading;
+    // Ensure sound mappings exist
+    var soundSet = window.soundSets;
+    if (!soundSet || typeof soundSet !== "object") {
+        console.error("❌ Error: window.soundSets is not defined or not an object.");
+        return;
+    }
 
-    // Translate heading
-    window.headingLabel.text = isTranslated ? window.originalListenTexts.heading : translations["Play the sound and press the matching animal!"];
+    console.log("✅ Selected Sound Set:", soundSet);
 
-    // Translate audio
+    // Reset the sound index
+    window.currentSound = 0;
+
+    // Update each picture's answer and force re-assign sounds
+    window.pics.loop(function (pic, i) {
+        var picFilename = window.picSet[i];
+    
+        if (!picFilename || !soundSet[picFilename]) {
+            console.error(`❌ Error: Missing sound mapping for "${picFilename}".`);
+            return;
+        }
+    
+        var selectedSound = soundSet[picFilename][window.isTranslated ? 'sa' : 'en'];
+    
+        if (!selectedSound) {
+            console.error(`❌ Error: No translated sound found for "${picFilename}".`);
+            return;
+        }
+    
+        console.log(`🎵 Updating sound for ${picFilename}: ${selectedSound}`);
+        
+        // 🔥 Ensure the answer is properly updated to the Sanskrit version
+        pic.answer = selectedSound;
+    });
+    
+
+    // Shuffle new set of sounds based on the selected language
+    window.sounds = shuffle(
+        window.picSet.map(pic => {
+            if (!soundSet[pic]) {
+                console.error(`❌ Error: No sound found for "${pic}"`);
+                return null;  // Prevent undefined values in array
+            }
+            var newSound = soundSet[pic][window.isTranslated ? 'sa' : 'en'];
+            console.log(`🎵 Setting sound for ${pic}: ${newSound}`);
+            return newSound;
+        }).filter(Boolean)  // Remove null values
+    );
+    
+
+    console.log("✅ New Shuffled Sound List:", window.sounds);
+
+    // Stop any currently playing audio
     if (window.listenPage.read) {
+        console.log("⏹️ Stopping currently playing instruction audio.");
         window.listenPage.read.stop();
     }
-    window.listenPage.read = asset(isTranslated ? window.originalListenAudio : window.translatedListenAudio).play();
 
+    // Play the correct instruction audio
+    var instructionAudio = window.isTranslated ? "listenSans.mp3" : "listen.mp3";
+    console.log("🔊 Playing instruction audio:", instructionAudio);
+    window.listenPage.read = asset(instructionAudio).play();
+
+    // Ensure the stage updates
     window.listenStage.update();
 }
