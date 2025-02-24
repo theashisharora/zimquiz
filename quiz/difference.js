@@ -1,4 +1,3 @@
-
 function makeDifference(stage) {
     var stageW = stage.width;
     var stageH = stage.height;
@@ -190,8 +189,7 @@ function makeDifference(stage) {
 
     Style.add({color:green.darken(.7), size:40, align:LEFT});
 
-    // new Label("Press the different parts of the pictures!")
-    new Label("Press where the pictures are different!")
+    var headingLabel = new Label("Press where the pictures are different!")
         .pos(0,70,CENTER,TOP,page);
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -255,5 +253,58 @@ function makeDifference(stage) {
         });
     new Label({font:"verdana", size:16, text:page.quiz.toUpperCase()}).centerReg(page).loc(icon).mov(0,45).alp(.8);
 
+    // Store words and page globally for translation function
+    window.differencePage = page;
+    window.differenceStage = stage;
+    window.headingLabel = headingLabel;
+
+    // Store original texts and audio for toggling
+    window.originalDifferenceTexts = {
+        heading: "Press where the pictures are different!"
+    };
+    window.originalDifferenceAudio = "difference";
+    window.translatedDifferenceAudio = "differenceSans";
+
+    // Add this part at the end of the makeDifference function
+    var translateButton = new Button({
+        label: "Translate",
+        width: 250,
+        height: 40,
+        backgroundColor: purple,
+        rollBackgroundColor: blue
+    }).pos(20, 20, LEFT, TOP, page);
+
+    translateButton.on("click", function() {
+        if (typeof translateDifferenceContent === 'function') {
+            translateDifferenceContent();
+        } else {
+            console.error('translateDifferenceContent function is not defined.');
+        }
+    });
+
     return page; // so main script has access to this page and its properties
 };
+
+function translateDifferenceContent() {
+    var translations = {
+        "Press where the pictures are different!": "चित्रयोः भिन्नस्थानानि निर्दिशन्तु!"
+    };
+
+    var isTranslated = window.differencePage.children.find(child => child.text === translations["Press where the pictures are different!"]);
+
+    // Translate heading
+    var heading = window.differencePage.children.find(child => child.text === (isTranslated ? translations["Press where the pictures are different!"] : "Press where the pictures are different!"));
+    if (heading) {
+        heading.text = isTranslated ? window.originalDifferenceTexts.heading : translations[heading.text];
+    }
+
+    // Play the correct instruction audio
+    var instructionAudio = isTranslated ? window.originalDifferenceAudio : window.translatedDifferenceAudio;
+    if (window.differencePage.read) {
+        window.differencePage.read.stop();
+    }
+    window.differencePage.read = asset(instructionAudio).play();
+
+    // Ensure the stage updates
+    window.differenceStage.update();
+}

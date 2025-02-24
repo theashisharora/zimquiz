@@ -1,4 +1,3 @@
-
 function makeMatch(stage) {
     var stageW = stage.width;
     var stageH = stage.height;
@@ -22,7 +21,6 @@ function makeMatch(stage) {
         color:white,
         align:CENTER,
     };
-
 
     var pics = ["squid.jpg", "seahorse.jpg", "shell.jpg", "crab.jpg"];
 
@@ -102,7 +100,6 @@ function makeMatch(stage) {
            }
        }
    } // end Flipper
-
 
    var answers = shuffle(pics.concat(pics,pics,pics)); // four sets or two sets of matches
    var index = 0;
@@ -200,7 +197,6 @@ function makeMatch(stage) {
        }
    })
 
-
     // ~~~~~~~~~~~~~~~~~~
     // GO AND REPLAY
     // these are animated in above when needed
@@ -231,13 +227,12 @@ function makeMatch(stage) {
         page.replay.animate({alpha:0}, .3);
     })
 
-
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~
     // HEADING
 
     Style.add({color:green.darken(.7), size:40, align:LEFT});
 
-    new Label("Find the matching animals!")
+    var headingLabel = new Label("Find the matching animals!")
         .pos(0,70,CENTER,TOP,page);
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -303,6 +298,58 @@ function makeMatch(stage) {
         });
     new Label({font:"verdana", size:16, color:white, text:page.quiz.toUpperCase()}).centerReg(page).loc(icon).mov(0,45).alp(.8);
 
+    // Store words and page globally for translation function
+    window.matchPage = page;
+    window.matchStage = stage;
+    window.cards = cards;
+
+    // Store original texts and audio for toggling
+    window.originalMatchTexts = {
+        heading: "Find the matching animals!"
+    };
+    window.originalMatchAudio = "match";
+    window.translatedMatchAudio = "matchSans";
+
+    // Add this part at the end of the makeMatch function
+    var translateButton = new Button({
+        label: "Translate",
+        width: 250,
+        height: 40,
+        backgroundColor: purple,
+        rollBackgroundColor: blue
+    }).pos(20, 20, LEFT, TOP, page);
+
+    translateButton.on("click", function() {
+        if (typeof translateMatchContent === 'function') {
+            translateMatchContent();
+        } else {
+            console.error('translateMatchContent function is not defined.');
+        }
+    });
 
     return page; // so main script has access to this page and its properties
 };
+
+function translateMatchContent() {
+    var translations = {
+        "Find the matching animals!": "मेलकर्ता पशून् अन्विष्यन्तु!"
+    };
+
+    var isTranslated = window.matchPage.children.find(child => child.text === translations["Find the matching animals!"]);
+
+    // Translate heading
+    var heading = window.matchPage.children.find(child => child.text === (isTranslated ? translations["Find the matching animals!"] : "Find the matching animals!"));
+    if (heading) {
+        heading.text = isTranslated ? window.originalMatchTexts.heading : translations[heading.text];
+    }
+
+    // Play the correct instruction audio
+    var instructionAudio = isTranslated ? window.originalMatchAudio : window.translatedMatchAudio;
+    if (window.matchPage.read) {
+        window.matchPage.read.stop();
+    }
+    window.matchPage.read = asset(instructionAudio).play();
+
+    // Ensure the stage updates
+    window.matchStage.update();
+}

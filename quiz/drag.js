@@ -1,4 +1,3 @@
-
 function makeDrag(stage) {
     var stageW = stage.width;
     var stageH = stage.height;
@@ -44,36 +43,11 @@ function makeDrag(stage) {
         draggers[i].answer = homers[i]; // add the matching answer to what you are dragging
     });
 
-    // // A. this is a test to make sure that the shuffled order is not the same
-    // var answer = true;
-    // var num = 0;
-    // while(answer && num<50) {
-    //     shuffle(draggers); // or just shuffle one or the other
-    //     shuffle(homers);
-    //     answer = loop(draggers, function (d, i) {
-    //         if (d.answer != homers[i]) return false; // in different order
-    //     });
-    //     num++;
-    // }
-
-    // // B. this tests to make sure that each pair is different
-    // var different = false;
-    // var num = 0;
-    // while(!different && num<50) {
-    //     shuffle(draggers); // or just shuffle one or the other
-    //     // shuffle(homers);
-    //     var different = loop(draggers, function (d, i) {
-    //         if (d.answer == homers[i]) return false; // in same order
-    //     });
-    //     num++;
-    // }
-
     // C. could just set the order of one or the other or both
     // which is what we do this time - we are making some scale and position changes
     // and the randomizing is not particularily important
     // if we wanted to, we could just adjust the images to be treated the same when randomized
     draggers = [draggers[1], draggers[2], draggers[0]];
-
 
     // NOTE: unique is set to true in STYLE so Tile expects an array
     // and will make an array with these objects without cloning them
@@ -164,7 +138,6 @@ function makeDrag(stage) {
         count = 0;
     }
 
-
     // ~~~~~~~~~~~~~~~~~~
     // GO AND REPLAY
     // these are animated in above when needed
@@ -207,13 +180,12 @@ function makeDrag(stage) {
         });
     });
 
-
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~
     // HEADING
 
     Style.add({color:green.darken(.7), size:40, align:LEFT});
 
-    new Label("Move the animals to their home!")
+    var headingLabel = new Label("Move the animals to their home!")
         .pos(0,70,CENTER,TOP,page);
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -277,6 +249,58 @@ function makeDrag(stage) {
         });
     new Label({font:"verdana", size:16, text:page.quiz.toUpperCase()}).centerReg(page).loc(icon).mov(0,45).alp(.8);
 
+    // Store words and page globally for translation function
+    window.dragPage = page;
+    window.dragStage = stage;
+    window.headingLabel = headingLabel;
+
+    // Store original texts and audio for toggling
+    window.originalDragTexts = {
+        heading: "Move the animals to their home!"
+    };
+    window.originalDragAudio = "drag";
+    window.translatedDragAudio = "dragSans";
+
+    // Add this part at the end of the makeDrag function
+    var translateButton = new Button({
+        label: "Translate",
+        width: 250,
+        height: 40,
+        backgroundColor: purple,
+        rollBackgroundColor: blue
+    }).pos(20, 20, LEFT, TOP, page);
+
+    translateButton.on("click", function() {
+        if (typeof translateDragContent === 'function') {
+            translateDragContent();
+        } else {
+            console.error('translateDragContent function is not defined.');
+        }
+    });
 
     return page; // so main script has access to this page and its properties
 };
+
+function translateDragContent() {
+    var translations = {
+        "Move the animals to their home!": "पशून् स्वगृहं नयन्तु!"
+    };
+
+    var isTranslated = window.dragPage.children.find(child => child.text === translations["Move the animals to their home!"]);
+
+    // Translate heading
+    var heading = window.dragPage.children.find(child => child.text === (isTranslated ? translations["Move the animals to their home!"] : "Move the animals to their home!"));
+    if (heading) {
+        heading.text = isTranslated ? window.originalDragTexts.heading : translations[heading.text];
+    }
+
+    // Play the correct instruction audio
+    var instructionAudio = isTranslated ? window.originalDragAudio : window.translatedDragAudio;
+    if (window.dragPage.read) {
+        window.dragPage.read.stop();
+    }
+    window.dragPage.read = asset(instructionAudio).play();
+
+    // Ensure the stage updates
+    window.dragStage.update();
+}

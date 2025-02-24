@@ -1,4 +1,3 @@
-
 function makeSpell(stage) {
     var stageW = stage.width;
     var stageH = stage.height;
@@ -171,7 +170,7 @@ function makeSpell(stage) {
 
     Style.add({color:green.darken(.7), size:40, align:LEFT});
 
-    new Label("Move letters to spell animal name!")
+    var headingLabel = new Label("Move letters to spell animal name!")
         .pos(0,70,CENTER,TOP,page);
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -234,6 +233,113 @@ function makeSpell(stage) {
         });
     new Label({font:"verdana", size:16, text:page.quiz.toUpperCase()}).centerReg(page).loc(icon).mov(0,45).alp(.8);
 
+    // Store words and page globally for translation function
+    window.spellPage = page;
+    window.spellStage = stage;
+    window.headingLabel = headingLabel;
+
+    // Store original texts and audio for toggling
+    window.originalSpellTexts = {
+        heading: "Move letters to spell animal name!"
+    };
+    window.originalSpellAudio = "spell";
+    window.translatedSpellAudio = "spellSans";
+
+    // Add this part at the end of the makeSpell function
+    var translateButton = new Button({
+        label: "Translate",
+        width: 250,
+        height: 40,
+        backgroundColor: purple,
+        rollBackgroundColor: blue
+    }).pos(20, 20, LEFT, TOP, page);
+
+    translateButton.on("click", function() {
+        if (typeof translateSpellContent === 'function') {
+            translateSpellContent();
+        } else {
+            console.error('translateSpellContent function is not defined.');
+        }
+    });
 
     return page; // so main script has access to this page and its properties
 };
+
+function translateSpellContent() {
+    var translations = {
+        "Move letters to spell animal name!": "अक्षराणि चलयित्वा पशूनां नाम लिखन्तु!"
+    };
+
+    var sanskritWords = {
+        "horse": "अश्वः",
+        "sheep": "मेषः",
+        "pig": "वराहः",
+        "rooster": "कुक्कुटः"
+    };
+
+    // ✅ Check if headingLabel exists before modifying text
+    if (!headingLabel) {
+        console.error("Error: headingLabel is not defined.");
+        return;
+    }
+
+    // Detect whether translation is active
+    var isTranslated = headingLabel.text === translations["Move letters to spell animal name!"];
+
+    // ✅ Toggle Heading Text safely
+    headingLabel.text = isTranslated ? window.originalSpellTexts.heading : translations["Move letters to spell animal name!"];
+
+    // ✅ Ensure window.answers and window.index exist
+    if (!window.answers || window.index === undefined) {
+        console.error("Error: window.answers or window.index is undefined.");
+        return;
+    }
+
+    // ✅ Get the correct English word from answers
+    var englishWord = window.answers[window.index] ? window.answers[window.index].split(".")[0] : null;
+
+    if (!englishWord) {
+        console.error("Error: Unable to retrieve current English word.");
+        return;
+    }
+
+    if (!sanskritWords[englishWord]) {
+        console.error("No Sanskrit translation found for:", englishWord);
+        return;
+    }
+
+    var sanskritWord = sanskritWords[englishWord].split(""); // Convert to array of characters
+    var englishWordArr = englishWord.split(""); // Convert English word to array
+
+    // ✅ Ensure scrambler is properly initialized
+    if (!spellPage.scrambler || !spellPage.scrambler.tile || !spellPage.scrambler.tile.children) {
+        console.error("Error: scrambler is not properly initialized.");
+        return;
+    }
+
+    var scramblerTiles = spellPage.scrambler.tile.children;
+
+    if (!scramblerTiles || scramblerTiles.length === 0) {
+        console.error("Error: No tiles found in Scrambler.");
+        return;
+    }
+
+    // ✅ Toggle between English and Sanskrit letters safely
+    scramblerTiles.forEach((tile, i) => {
+        if (tile instanceof zim.Label) {
+            tile.text = isTranslated ? englishWordArr[i] || "" : sanskritWord[i] || "";
+        } else {
+            console.error("Error: Scrambler tile is not a zim.Label.");
+        }
+    });
+
+    // ✅ Play the correct instruction audio
+    var instructionAudio = isTranslated ? window.originalSpellAudio : window.translatedSpellAudio;
+    if (window.spellPage.read) {
+        window.spellPage.read.stop();
+    }
+    window.spellPage.read = asset(instructionAudio).play();
+
+    // ✅ Ensure the stage updates
+    window.spellStage.update();
+}

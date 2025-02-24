@@ -98,6 +98,10 @@ var assets = [{font:"reuben", src:"Reuben.otf"}, "intro.jpg", "drag.jpg", "press
     {id:"sharkSans", maxNum:1, src:"sharkSans.mp3"},
     {id:"sharkSans", maxNum:1, src:"sharkSans.mp3"},
     {id:"whaleSans", maxNum:1, src:"whaleSans.mp3"},
+    {id:"matchSans", maxNum:1, src:"matchSans.mp3"},
+    {id:"puzzleSans", maxNum:1, src:"puzzleSans.mp3"},
+    {id:"dragSans", maxNum:1, src:"dragSans.mp3"},
+    {id:"differenceSans", maxNum:1, src:"differenceSans.mp3"}
 
 
 ].concat(animals).concat(sounds);
@@ -140,7 +144,6 @@ frame.on("ready", function() {
             {page:scramble, swipe:[intro, listen]},
             {page:listen, swipe:[scramble, match]},
             {page:match, swipe:[listen, spell]},
-            {page:spell, swipe:[match, puzzle]},
             {page:puzzle, swipe:[spell, drag]},
             {page:drag, swipe:[puzzle, difference]},
             {page:difference, swipe:[drag, intro]}

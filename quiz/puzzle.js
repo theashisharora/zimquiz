@@ -1,4 +1,3 @@
-
 function makePuzzle(stage) {
     var stageW = stage.width;
     var stageH = stage.height;
@@ -27,7 +26,6 @@ function makePuzzle(stage) {
         color:white,
         align:CENTER,
     };
-
 
     var thumbs = [];
     var cols = 3;
@@ -89,8 +87,6 @@ function makePuzzle(stage) {
         stage.update();
     });
 
-
-
     // ~~~~~~~~~~~~~~~~~~
     // GO AND REPLAY
     // these are animated in above when needed
@@ -123,13 +119,12 @@ function makePuzzle(stage) {
         pic.removeFrom();
     })
 
-
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~
     // HEADING
 
     Style.add({color:green.darken(.7), size:40, align:LEFT});
 
-    new Label("Unscramble the picture!")
+    var headingLabel = new Label("Unscramble the picture!")
         .pos(0,70,CENTER,TOP,page);
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -194,7 +189,58 @@ function makePuzzle(stage) {
         });
     new Label({font:"verdana", size:16, text:page.quiz.toUpperCase()}).centerReg(page).loc(icon).mov(0,45).alp(.8);
 
+    // Store words and page globally for translation function
+    window.puzzlePage = page;
+    window.puzzleStage = stage;
+    window.headingLabel = headingLabel;
 
+    // Store original texts and audio for toggling
+    window.originalPuzzleTexts = {
+        heading: "Unscramble the picture!"
+    };
+    window.originalPuzzleAudio = "puzzle";
+    window.translatedPuzzleAudio = "puzzleSans";
+
+    // Add this part at the end of the makePuzzle function
+    var translateButton = new Button({
+        label: "Translate",
+        width: 250,
+        height: 40,
+        backgroundColor: purple,
+        rollBackgroundColor: blue
+    }).pos(20, 20, LEFT, TOP, page);
+
+    translateButton.on("click", function() {
+        if (typeof translatePuzzleContent === 'function') {
+            translatePuzzleContent();
+        } else {
+            console.error('translatePuzzleContent function is not defined.');
+        }
+    });
 
     return page; // so main script has access to this page and its properties
 };
+
+function translatePuzzleContent() {
+    var translations = {
+        "Unscramble the picture!": "चित्रं पुनः संयोजयन्तु!"
+    };
+
+    var isTranslated = window.puzzlePage.children.find(child => child.text === translations["Unscramble the picture!"]);
+
+    // Translate heading
+    var heading = window.puzzlePage.children.find(child => child.text === (isTranslated ? translations["Unscramble the picture!"] : "Unscramble the picture!"));
+    if (heading) {
+        heading.text = isTranslated ? window.originalPuzzleTexts.heading : translations[heading.text];
+    }
+
+    // Play the correct instruction audio
+    var instructionAudio = isTranslated ? window.originalPuzzleAudio : window.translatedPuzzleAudio;
+    if (window.puzzlePage.read) {
+        window.puzzlePage.read.stop();
+    }
+    window.puzzlePage.read = asset(instructionAudio).play();
+
+    // Ensure the stage updates
+    window.puzzleStage.update();
+}
